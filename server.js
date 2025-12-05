@@ -2,12 +2,18 @@ const express = require("express");
 const axios = require("axios");
 const app = express();
 
-// Proxy the list of games
+const PROXY = "https://api.allorigins.win/get?url=";
+
+// Proxy list of games
 app.get("/games", async (req, res) => {
     try {
-        const response = await axios.get("https://nenow.in/gamezone/games");
-        res.send(response.data);
+        const url = PROXY + encodeURIComponent("https://nenow.in/gamezone/games");
+        const response = await axios.get(url);
+
+        // allorigins wraps content in { contents: "..." }
+        res.send(response.data.contents);
     } catch (err) {
+        console.log(err.message);
         res.status(500).send("Error loading games page");
     }
 });
@@ -15,17 +21,20 @@ app.get("/games", async (req, res) => {
 // Proxy individual game pages
 app.get("/gamezone/game/:slug", async (req, res) => {
     try {
-        const url = `https://nenow.in/gamezone/game/${req.params.slug}`;
+        const target = `https://nenow.in/gamezone/game/${req.params.slug}`;
+        const url = PROXY + encodeURIComponent(target);
+
         const response = await axios.get(url);
-        res.send(response.data);
+        res.send(response.data.contents);
     } catch (err) {
+        console.log(err.message);
         res.status(500).send("Error loading game page");
     }
 });
 
-// Serve local files (index.html)
+// Serve local files
 app.use(express.static("."));
 
-// IMPORTANT: Render/Railway require dynamic PORT
+// Render dynamic port
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => console.log("Server running on " + PORT));
